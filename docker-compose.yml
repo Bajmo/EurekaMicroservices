@@ -1,0 +1,73 @@
+version: '3'
+
+services:
+  mysql:
+    image: mysql:latest
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: 1
+    ports:
+      - "3306:3306"
+
+  server:
+    image: eureka-server-image
+    build:
+      context: ./eureka-server
+
+    ports:
+      - "8761:8761"
+
+  gateway:
+    image : eureka-gateway-image
+    build:
+      context: ./eureka-gateway
+    ports:
+      - "8888:8888"
+
+  client:
+    image: client-service-image
+    build:
+      context: ./client-service
+    ports:
+      - "8081:8081"
+    depends_on:
+      mysql:
+        condition: service_started
+
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/clientservicedb
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD:
+    healthcheck:
+      test: "/usr/bin/mysql --user=root --password=  --execute \"SHOW DATABASES;\""
+      interval: 5s
+      timeout: 2s
+      retries: 100
+
+  car:
+    image: car-service-image
+    build:
+      context: ./car-service
+    ports:
+      - "8082:8082"
+    depends_on:
+      mysql:
+        condition: service_started
+
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/carservicedb
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD:
+    healthcheck:
+      test: "/usr/bin/mysql --user=root --password=  --execute \"SHOW DATABASES;\""
+      interval: 5s
+      timeout: 2s
+      retries: 100
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      MYSQL_ROOT_PASSWORD:
+    ports:
+      - "8083:80"
